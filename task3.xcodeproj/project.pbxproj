@@ -24,7 +24,8 @@
 
 /* Begin PBXFileReference section */
 		EA058B0F2205C91B007FE676 /* task3 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = task3; sourceTree = BUILT_PRODUCTS_DIR; };
-		EA058B122205C91B007FE676 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		EA058B122205C91B007FE676 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = main.cpp; path = task3/main.cpp; sourceTree = SOURCE_ROOT; };
+		EA058B192205CD76007FE676 /* 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = 1.txt; path = task3/1.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -41,6 +42,7 @@
 		EA058B062205C91B007FE676 = {
 			isa = PBXGroup;
 			children = (
+				EA058B192205CD76007FE676 /* 1.txt */,
 				EA058B112205C91B007FE676 /* task3 */,
 				EA058B102205C91B007FE676 /* Products */,
 			);
