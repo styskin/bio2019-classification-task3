@@ -33,6 +33,38 @@ int code(char c) {
     return 0;
 }
 
+char decode(int c) {
+    switch(c) {
+        case 0: return 'A';
+        case 1: return 'C';
+        case 2: return 'T';
+        case 3: return 'G';
+    }
+    return 0;
+
+}
+
+int codeD(char c) {
+    switch(c) {
+        case 'M': return 0;
+        case 'X': return 1;
+        case 'D': return 2;
+        case 'I': return 3;
+    }
+    return 0;
+}
+
+char decodeD(int c) {
+    switch(c) {
+        case 0: return 'M';
+        case 1: return 'X';
+        case 2: return 'D';
+        case 3: return 'I';
+    }
+    return 0;
+}
+
+
 int codeA(const string& s) {
     int x = 0;
     for (int i = 0; i < s.length(); ++i) {
@@ -41,79 +73,33 @@ int codeA(const string& s) {
     return x;
 }
 
-string diff(const string& s, const string& e, int p2, int l, int d) {
-    std::stringstream ss;
-    
-    int M = 0;
-    int X = 0;
-    int I = 0;
-    int D = 0;
-    for (int i = 0, j = p2; i < e.length() && j < s.length(); ) {
-        if (e[i] == s[j]) {
-            ++M;
-            ++i;
-            ++j;
-        } else if (e[i] == s[j+1]) {
-            ++D;
-            ++j;
-        } else if (e[i+1] == s[j]) {
-            ++I;
-            ++i;
-            
-        } else if (e[i+1] == s[j+1]) {
-            ++X;
-            ++i;
-            ++j;
-        } else {
-            ++i;
-            ++j;
-            cout << "XXXXXX" << endl;
-        }
-        if ((X + I + D) > 0) {
-            if (M > 0) {
-                ss << M << "M";
-            }
-            if (X > 0) {
-                ss << X << "X";
-            }
-            if (D > 0) {
-                ss << D << "D";
-            }
-            if (I > 0) {
-                ss << I << "I";
-            }
-            M = 0;
-            X = 0;
-            D = 0;
-            I = 0;
-        }
+void maximize(pii& a, const pii& b) {
+    if (a.first == -1) {
+        a = b;
+    } else if (b.first < a.first) {
+        a = b;
+    } else if (b.first == a.first && b.second > a.second) {
+        a = b;
     }
-    if (M > 0) {
-        ss << M << "M";
-    }
-
-    return ss.str();
 }
 
-
 int main(int argc, const char * argv[]) {
-    for (int T = 5; T <= 5; ++T) {
+    for (int T = 3; T <= 3; ++T) {
         ifstream in;
-        in.open(string("/Users/styskin/bio2019/task3/task3/") + std::to_string(T) + ".txt");
+        in.open(std::to_string(T) + ".txt");
         ofstream out;
-        out.open(string("/Users/styskin/bio2019/task3/task3/") + std::to_string(T) + ".out");
+        out.open(std::to_string(T) + ".out");
         int N, L, D;
         string s;
         in >> N >> L >> D;
         // N -- number of times
         // L - length
         // D - errors
+        cout << N << " " << L << " " << D << endl;
         in >> s;
-        
-        // Find best
-//        L = 8;
-//        for (int p = min(16, L - 1); p >= 2; --p) {
-        for (int p = 3; p >= 2; --p) {
+
+        bool found = false;
+        for (int p = min(16, L - 1); p >= 2; --p) {
             cout << "Size " << p << endl;
             mii m;
             mivi pos;
@@ -125,35 +111,76 @@ int main(int argc, const char * argv[]) {
                 m[x] += 1;
                 pos[x].push_back(i);
             }
-            vi pp;
+            unordered_map<string, vector<int> > candidates;
+
             for (auto y : m) {
                 if (y.second >= N) {
                     cout << y.first << " = " << y.second << ", pos=" << pos[y.first][0] << endl;
                     for (auto a : pos[y.first]) {
-                        pp.push_back(a);
+                        candidates[s.substr(a, p)].push_back(a);
                     }
                 }
             }
-            if (pp.size() == 0) {
-                continue;
+            for (const auto& cs : candidates) {
+                if (cs.second.size() < N) {
+                    continue;
+                }
+                vector<string> prev;
+                vector<string> post;
+                int x = L - p + D;
+                for (int i = 0; i < cs.second.size(); ++i) {
+                    int cst = cs.second[i];
+                    string tp(s.substr(cst - x, x));
+                    string tpost(s.substr(cst + p, x));
+                    cout << cst << ": " << tp << " " << s.substr(cst, p) << " " << tpost << endl;
+                    reverse(tp.begin(), tp.end());
+                    prev.push_back(tp);
+                    post.push_back(tpost);
+                }
+                int n = cs.second.size();
+
+
+                // minimize max_edit
+                // M [x, STATES, K,  pii (max_edit, prevstate)   ]
+
+                int STATE_COUNT = 2;
+                int STATES = 1 << STATE_COUNT;
+
+                vector<vector< vector<pii> >> M(4, vector<vector<pii> >(x, vector<pii>(n, pii(-1, -1))));
+                for (int i = 0; i < x; ++i) {
+                    for (int j = 0; j < 4; ++j) {
+                        for (int k = 0; k < n; ++k) {
+                            if (i == 0) {
+                                if (decode(j) == prev[k][i]) {
+                                    M[j][i][k] = pii(0, 1);
+                                } else {
+                                    M[j][i][k] = pii(1, 0);
+                                }
+                            } else {
+                                for (int pk = 0; pk < n; ++pk) {
+                                    pii pr(M[j][i - 1][pk]);
+                                    if (decode(j) == prev[k][pr.second]) { // M
+                                        pr.second++;
+                                        maximize(M[j][i][k], pr);
+                                    } else if (decode(j) == prev[k][pr.second]) { // X
+                                        pr.first ++;
+                                        pr.second ++;
+                                        maximize(M[j][i][k], pr);
+                                    } else {    // I
+                                    }           // D
+                                }
+                            }
+                        }
+                    }
+                }
+                // if GOOD then BREAK
+                found = true;
+                break;
+
             }
-            sort(pp.begin(), pp.end());
-            
-            int x = codeA(s.substr(pp[0], p));
-            vi& starts = pos[x];
-            for (auto c : pp) {
-                cout << c << " " << s.substr(c, p) << endl;
+            if (found) {
+                break;
             }
-            // string: pp[0], length L
-            string e;
-            e = s.substr(pp[0], L);
-//            e = "GCGTAACAGCTGTGAA";
-            out << e << endl;
-            // count distance
-            for (int ii = 0; ii < N; ++ii) {
-                out << (starts[ii] + 1) << " " << diff(s, e, starts[ii], L, D) << endl;
-            }
-            break;
         }
         in.close();
         out.close();
