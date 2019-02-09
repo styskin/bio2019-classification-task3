@@ -20,12 +20,15 @@ using namespace std;
 
 typedef vector<int> vi;
 typedef bitset<128> TLL;
-typedef unordered_map<TLL, set<int> > THash;
+typedef pair<int, int> pii;
+typedef unordered_map<TLL, set<pii> > THash;
 
 typedef unordered_map<string, int> msi;
 typedef unordered_map<string, vi> msvi;
-typedef pair<int, int> pii;
 typedef vector<pii> vii;
+
+const int TRIG = 3;
+
 
 int code(char c) {
     switch(c) {
@@ -194,51 +197,76 @@ public:
         D = d;
     }
     
-    void combine(TLL s, int start, int c, int l, int d) {
-        if (d > D || c >= l) {
+    void combine(TLL s, pii start, int c, int l, int d, TLL mask) {
+        if (d > D || c >= L) {
             return;
         }
-        if (c == l - 1 && l == L) {
-            H[s].insert(start);
+        if (c == L - 1) {
+            pii r(start);
+            r.second = L - (l - start.second);
+            // trim s to length
+            TLL rs = s;
+            for (int i = L; i < l; ++i) {
+                rs[2*i] = 0;
+                rs[2*i + 1] = 0;
+            }
+            H[rs].insert(r);
             return;
         }
+        // Only append
+        if (c >= l) {
+            for (int i = 0; i < 4; ++i) {
+                s[2*c] = i & 1;
+                s[2*c+1] = i & 2;
+                combine(s, start, c + 1, l, d + 1, mask);
+            }
+            return;
+        }
+        
         TLL cs = s;
         // M
-        combine(s, start, c + 1, l, d);
-        // X
-        for (int i = 0; i < 4; ++i) {
-            s[c] = i & 1;
-            s[c+1] = i & 2;
-            combine(s, start, c + 1, l, d + 1);
-        }
-        // I
-        s = cs;
-        s <<= 2;
-        for (int i = 0; i < 2*c; ++i) {
-            s[i] = cs[i];
-        }
-        for (int i = 0; i < 4; ++i) {
-            s[2*c] = i & 1;
-            s[2*c + 1] = i & 2;
-            combine(s, start, c + 2, l + 1, d + 1);
-        }
-        // D
-        if (c > 0) {
+        combine(s, start, c + 1, l, d, mask);
+        if (mask[c - (l - start.second)] == 0) {
+            // X
+            for (int i = 0; i < 4; ++i) {
+                s[2*c] = i & 1;
+                s[2*c+1] = i & 2;
+                if (s[2*c] != cs[2*c] || s[2*c+1] != cs[2*c]) {
+                    combine(s, start, c + 1, l, d + 1, mask);
+                }
+            }
+            // I
             s = cs;
-            s >>= 2;
+            s <<= 2;
             for (int i = 0; i < 2*c; ++i) {
                 s[i] = cs[i];
             }
-            combine(s, start, c, l - 1, d + 1);
+            for (int i = 0; i < 4; ++i) {
+                s[2*c] = i & 1;
+                s[2*c + 1] = i & 2;
+                // Do not insert the same
+                if (s[2*c] != cs[2*c] || s[2*c+1] != cs[2*c]) {
+                    combine(s, start, c + 2, l + 1, d + 1, mask);
+                }
+            }
+            // D
+            if (c > 0) {
+                s = cs;
+                s >>= 2;
+                for (int i = 0; i < 2*c; ++i) {
+                    s[i] = cs[i];
+                }
+                combine(s, start, c, l - 1, d + 1, mask);
+            }
         }
     }
     
-    TLL check(vi& res) {
+    TLL check(vii& res) {
         for (const auto& c : H) {
-            if (c.second.size() >= N) {
-                int prev = -100;
+            if (c.second.size() >= N-1) {
+                pii prev(-100, 0);
                 for (auto x : c.second) {
-                    if (x >= prev + L - 1) {
+                    if (x.first >= prev.first + L) {
                         res.push_back(x);
                         prev = x;
                     }
@@ -268,7 +296,7 @@ int main(int argc, const char * argv[]) {
     }
     
     
-    for (int T = 3; T <= 3; ++T) {
+    for (int T = 9; T <= 9; ++T) {
         ifstream in;
         in.open("/Users/styskin/bio2019/task3/task3/" + std::to_string(T) + ".txt");
         ofstream out;
@@ -281,61 +309,131 @@ int main(int argc, const char * argv[]) {
         // D - errors
         cout << N << " " << L << " " << D << endl;
         in >> s;
-        if (1) {
+        if (0) {
             TGenerate generate(N, L, D);
             
             for (int i = 0; i < s.length() - L; ++i) {
-                generate.combine(getTLL(s.substr(i, L)), i, 0, L, 0);
+                // Check different length
+                for (int j = L - D; j <= L + D; ++j) {
+                    generate.combine(getTLL(s.substr(i, j)), pii(i, j), 0, j, 0, TLL());
+                }
             }
-            vi res;
+            vii res;
             TLL xx = generate.check(res);
             if (res.size() >= N) {
                 string e = fromTLL(xx, L);
                 out << e << endl;
                 for (auto start : res) {
                     vector<char> oo;
-                    traceLD(s.substr(start, L), e, oo);
-//                    out << start + 1 << " " << s.substr(start, L) << " " << compact(oo) << endl;
-                    out << start + 1  << " " << compact(oo) << endl;
+                    traceLD(s.substr(start.first, start.second), e, oo);
+//                    out << start + 1 << " " << s.substr((start.first, start.second)) << " " << compact(oo) << endl;
+                    out << start.first + 1  << " " << compact(oo) << endl;
                 }
                 return 0;
             }
             return 0;
         }
+        
+        
+        TGenerate generate(N, L, D);
         bool found = false;
-        for (int p = L; p >= 2; --p) {
+        set<int> checked;
+        // Should be L
+        for (int p = 5; p >= 2; --p) {
             cout << "Size " << p << endl;
-            msi m;
             msvi pos;
             for (int i = 0; i < s.length() - p; ++i) {
                 string x = s.substr(i, p);
-                m[x] += 1;
                 pos[x].push_back(i);
             }
             msvi candidates;
-            for (auto y : m) {
-                if (y.second >= N) {
-                    cout << y.first << " = " << y.second << ", pos=" << pos[y.first][0] << endl;
-                    for (auto a : pos[y.first]) {
+            for (const auto& y : pos) {
+                if (y.second.size() >= N) {
+                    cout << y.first << " = " << y.second.size() << ", pos=" << y.second[0] << endl;
+                    for (auto a : y.second) {
                         candidates[s.substr(a, p)].push_back(a);
                     }
                 }
             }
+            
+            
             for (const auto& cs : candidates) {
                 if (cs.second.size() < N) {
                     continue;
                 }
-                vector<string> prev;
-                vector<string> post;
+                
                 int x = L - p + D;
-                TGenerate generate(N, L, D);
+
+                cout << "Calculate common trigrams" << endl;
+                msvi ctrigrams;
                 for (int i = 0; i < cs.second.size(); ++i) {
                     int cst = cs.second[i];
-                    for (int j = max(cst - x, 0); j <= cst; ++j) {
-                        generate.combine(getTLL(s.substr(j, L)), j, 0, L, 0);
+                    string ss = s.substr(max(cst - x, 0), L + D);
+                    for (int i = 0; i < ss.length() - TRIG; ++i) {
+                        string x = ss.substr(i, TRIG);
+                        ctrigrams[x].push_back(i);
                     }
                 }
-                vi res;
+                vector<string> trigrams;
+                for (const auto& y : ctrigrams) {
+                    if (y.second.size() > N / 2) {
+                        trigrams.push_back(y.first);
+                    }
+                }
+
+                
+                
+                vector<string> prev;
+                vector<string> post;
+                for (int i = 0; i < cs.second.size(); ++i) {
+                    int cst = cs.second[i];
+                    cout << "Try " << cst << endl;
+                }
+                cout << "Let's try" << endl;
+                
+                for (int i = 0; i < cs.second.size(); ++i) {
+                    int cst = cs.second[i];
+                    cout << "Try " << cst << endl;
+                    for (int j = max(cst - x, 0); j <= cst; ++j) {
+                        // Check different length inside checker
+                        // Calculate mask to skip
+                        string can = s.substr(j, L + D);
+                        TLL mask;
+                        for (const auto& t : trigrams) {
+                            size_t tp = can.find(t);
+                            if (tp != string::npos) {
+                                for (int ti = 0; ti < TRIG; ++ti) {
+                                    mask[tp + ti] = 1;
+                                }
+                            }
+                        }
+//                        int zeros = 0;
+//                        for (int ti = 0; ti < can.length(); ++ti) {
+//                            cout << mask[ti];
+//                            if (mask[ti] == 0) {
+//                                ++zeros;
+//                            }
+//                        }
+//                        cout << endl;
+//                        if (zeros < 7) {
+                        
+                        if (checked.find(j) == checked.end()) {
+                            generate.combine(getTLL(can), pii(j, can.length()), 0, can.length(), 0, mask);
+                            checked.insert(j);
+                        }
+//                        }
+                    }
+                }
+                // Due to optimization let's not X, I, D in common 3grams
+                
+                
+                vii res;
+                for (auto xx : checked) {
+                    cout << xx << " ";
+                }
+                cout << endl;
+                
+                
                 cout << "CHECK" << endl;
                 TLL xx = generate.check(res);
                 if (res.size() >= N) {
@@ -343,8 +441,8 @@ int main(int argc, const char * argv[]) {
                     out << e << endl;
                     for (auto start : res) {
                         vector<char> oo;
-                        traceLD(s.substr(start, L), e, oo);
-                        out << start + 1 << " " << s.substr(start, L) << " " << compact(oo) << endl;
+                        traceLD(s.substr(start.first, start.second), e, oo);
+                        out << start.first + 1 << " " << s.substr(start.first, start.second) << " " << compact(oo) << endl;
                     }
                     found = true;
                     break;
