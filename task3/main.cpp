@@ -295,8 +295,7 @@ int main(int argc, const char * argv[]) {
         return 0;
     }
     
-    
-    for (int T = 9; T <= 9; ++T) {
+    for (int T = 7; T <= 7; ++T) {
         ifstream in;
         in.open("/Users/styskin/bio2019/task3/task3/" + std::to_string(T) + ".txt");
         ofstream out;
@@ -335,11 +334,12 @@ int main(int argc, const char * argv[]) {
         }
         
         
-        TGenerate generate(N, L, D);
         bool found = false;
         set<int> checked;
         // Should be L
-        for (int p = 5; p >= 2; --p) {
+        //L = L - 10;
+        L = L;
+        for (int p = L; p >= 2; --p) {
             cout << "Size " << p << endl;
             msvi pos;
             for (int i = 0; i < s.length() - p; ++i) {
@@ -350,25 +350,48 @@ int main(int argc, const char * argv[]) {
             for (const auto& y : pos) {
                 if (y.second.size() >= N) {
                     cout << y.first << " = " << y.second.size() << ", pos=" << y.second[0] << endl;
+                    int prev = -100;
                     for (auto a : y.second) {
-                        candidates[s.substr(a, p)].push_back(a);
+                        if (a > prev + L) {
+                            candidates[y.first].push_back(a);
+                            prev = a;
+                        }
+                    }
+                    if (candidates[y.first].size() < N) {
+                        candidates.erase(y.first);
                     }
                 }
             }
             
             
+            {
+                candidates.clear();
+                candidates["X"].push_back(23);
+                candidates["X"].push_back(63);
+                candidates["X"].push_back(130);
+                candidates["X"].push_back(211);
+                candidates["X"].push_back(1450);
+                
+            }
+
+            
             for (const auto& cs : candidates) {
                 if (cs.second.size() < N) {
                     continue;
                 }
-                
+                TGenerate generate(N, L, D);
+
                 int x = L - p + D;
+                // FIXME
+                x = 0;
 
                 cout << "Calculate common trigrams" << endl;
                 msvi ctrigrams;
                 for (int i = 0; i < cs.second.size(); ++i) {
                     int cst = cs.second[i];
                     string ss = s.substr(max(cst - x, 0), L + D);
+                    cout << ss << endl;
+
                     for (int i = 0; i < ss.length() - TRIG; ++i) {
                         string x = ss.substr(i, TRIG);
                         ctrigrams[x].push_back(i);
@@ -376,15 +399,11 @@ int main(int argc, const char * argv[]) {
                 }
                 vector<string> trigrams;
                 for (const auto& y : ctrigrams) {
-                    if (y.second.size() > N / 2) {
+                    if (y.second.size() >= N / 2) {
                         trigrams.push_back(y.first);
                     }
                 }
-
                 
-                
-                vector<string> prev;
-                vector<string> post;
                 for (int i = 0; i < cs.second.size(); ++i) {
                     int cst = cs.second[i];
                     cout << "Try " << cst << endl;
@@ -407,33 +426,30 @@ int main(int argc, const char * argv[]) {
                                 }
                             }
                         }
-//                        int zeros = 0;
-//                        for (int ti = 0; ti < can.length(); ++ti) {
-//                            cout << mask[ti];
-//                            if (mask[ti] == 0) {
-//                                ++zeros;
-//                            }
-//                        }
-//                        cout << endl;
-//                        if (zeros < 7) {
-                        
-                        if (checked.find(j) == checked.end()) {
-                            generate.combine(getTLL(can), pii(j, can.length()), 0, can.length(), 0, mask);
-                            checked.insert(j);
+                        cout << j << " ";
+                        int zeros = 0;
+                        for (int ti = can.length() - 1 ; ti >= 0; --ti) {
+                            if (mask[ti] == 0) {
+                                ++zeros;
+                            } else {
+                                break;
+                            }
                         }
-//                        }
+                        int len = can.length() - (zeros - min(zeros, D));
+                        for (int ti = 0; ti < len; ++ti) {
+                            cout << mask[ti];
+                            if (mask[ti] == 0) {
+                                ++zeros;
+                            }
+                        }
+                        cout << endl;
+                        generate.combine(getTLL(can), pii(j, len), 0, len, 0, mask);
                     }
                 }
                 // Due to optimization let's not X, I, D in common 3grams
                 
                 
                 vii res;
-                for (auto xx : checked) {
-                    cout << xx << " ";
-                }
-                cout << endl;
-                
-                
                 cout << "CHECK" << endl;
                 TLL xx = generate.check(res);
                 if (res.size() >= N) {
@@ -442,11 +458,14 @@ int main(int argc, const char * argv[]) {
                     for (auto start : res) {
                         vector<char> oo;
                         traceLD(s.substr(start.first, start.second), e, oo);
-                        out << start.first + 1 << " " << s.substr(start.first, start.second) << " " << compact(oo) << endl;
+//                        out << start.first + 1 << " " << s.substr(start.first, start.second) << " " << compact(oo) << endl;
+                        out << start.first + 1 << " " << compact(oo) << endl;
+
                     }
                     found = true;
                     break;
                 }
+                
                 
                 // Test 5
 
