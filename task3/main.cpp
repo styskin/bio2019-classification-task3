@@ -27,8 +27,7 @@ typedef unordered_map<string, int> msi;
 typedef unordered_map<string, vi> msvi;
 typedef vector<pii> vii;
 
-const int TRIG = 3;
-
+const int TRIG = 4;
 
 int code(char c) {
     switch(c) {
@@ -130,31 +129,24 @@ int traceLD(const std::string &s1, const std::string &s2, vector<char>& out) {
         int mn = min(D[m-1][n-1] + (s1[m-1] == s2[n-1] ? 0 : 1), D[m][n-1] + 1, D[m-1][n] + 1);
         if (D[m-1][n-1] + (s1[m-1] == s2[n-1] ? 0 : 1) == mn) {
             trace.push_back(s1[m-1] == s2[n-1] ? 'M':'X');
-            if (s1[m-1] != s2[n-1]) {
-                --err;
-            }
             --m;
             --n;
         } else if (D[m][n-1] + 1 == mn) {
             trace.push_back('I');
             --n;
-            --err;
         } else if (D[m-1][n] + 1 == mn) {
             trace.push_back('D');
             --m;
-            --err;
         }
     }
     
     while (m > 0) {
         trace.push_back('D');
         --m;
-        --err;
     }
     while (n > 0) {
         trace.push_back('I');
         --n;
-        --err;
     }
     reverse(trace.begin(), trace.end());
     for (const auto x : trace) {
@@ -224,7 +216,18 @@ public:
         }
         
         TLL cs = s;
+        // skip symbol
+        if (c == 0) {
+            pii r(start);
+            ++r.first;
+            --r.second;
+            s >>= 2;
+            TLL mc = mask;
+            mc >>= 1;
+            combine(s, r, c, l - 1, d, mc);
+        }
         // M
+        s = cs;
         combine(s, start, c + 1, l, d, mask);
         if (mask[c - (l - start.second)] == 0) {
             // X
@@ -295,7 +298,7 @@ int main(int argc, const char * argv[]) {
         return 0;
     }
     
-    for (int T = 7; T <= 7; ++T) {
+    for (int T = 9; T <= 9; ++T) {
         ifstream in;
         in.open("/Users/styskin/bio2019/task3/task3/" + std::to_string(T) + ".txt");
         ofstream out;
@@ -333,12 +336,50 @@ int main(int argc, const char * argv[]) {
             return 0;
         }
         
+        // Test 7
+        if (0) {
+            string e = "AGGAACTGGGTTCGGGGAGCCCTGGGCGGGGCGGCTGTGAGG";
+            out << e << endl;
+            vii res;
+            res.push_back(pii(4975, 42));
+            res.push_back(pii(5072, 42));
+            res.push_back(pii(5164, 42));
+            for (auto start : res) {
+                vector<char> oo;
+                traceLD(s.substr(start.first, start.second), e, oo);
+                out << start.first + 1 << " " << s.substr(start.first, start.second) << " " << compact(oo) << endl;
+                //                        out << start.first + 1 << " " << compact(oo) << endl;
+                
+            }
+            return 0;
+        }
+
+        if (0) {
+            string e = "GCATTCTCTGTGCGGAGGA";
+            out << e << endl;
+            vii res;
+            res.push_back(pii(24, 22));
+            res.push_back(pii(63, 22));
+            res.push_back(pii(130, 22));
+            res.push_back(pii(211, 22));
+            res.push_back(pii(1450, 22));
+            for (auto start : res) {
+                vector<char> oo;
+                out << s.substr(start.first, start.second) << endl;
+                int er = traceLD(s.substr(start.first, start.second), e, oo);
+                out << start.first + 1 << " " << er << " " << s.substr(start.first, start.second) << " " << compact(oo) << endl;
+                //                        out << start.first + 1 << " " << compact(oo) << endl;
+                
+            }
+            return 0;
+        }
+
+        
         
         bool found = false;
         set<int> checked;
         // Should be L
-        //L = L - 10;
-        L = L;
+//        L = L - 4;
         for (int p = L; p >= 2; --p) {
             cout << "Size " << p << endl;
             msvi pos;
@@ -362,19 +403,6 @@ int main(int argc, const char * argv[]) {
                     }
                 }
             }
-            
-            
-            {
-                candidates.clear();
-                candidates["X"].push_back(23);
-                candidates["X"].push_back(63);
-                candidates["X"].push_back(130);
-                candidates["X"].push_back(211);
-                candidates["X"].push_back(1450);
-                
-            }
-
-            
             for (const auto& cs : candidates) {
                 if (cs.second.size() < N) {
                     continue;
@@ -382,19 +410,16 @@ int main(int argc, const char * argv[]) {
                 TGenerate generate(N, L, D);
 
                 int x = L - p + D;
-                // FIXME
-                x = 0;
-
                 cout << "Calculate common trigrams" << endl;
-                msvi ctrigrams;
+                unordered_map<string, set<int> > ctrigrams;
                 for (int i = 0; i < cs.second.size(); ++i) {
                     int cst = cs.second[i];
-                    string ss = s.substr(max(cst - x, 0), L + D);
+                    string ss = s.substr(max(cst - x, 0), L + 2 * D);
                     cout << ss << endl;
 
-                    for (int i = 0; i < ss.length() - TRIG; ++i) {
-                        string x = ss.substr(i, TRIG);
-                        ctrigrams[x].push_back(i);
+                    for (int j = 0; j < ss.length() - TRIG; ++j) {
+                        string x = ss.substr(j, TRIG);
+                        ctrigrams[x].insert(i);
                     }
                 }
                 vector<string> trigrams;
@@ -412,11 +437,13 @@ int main(int argc, const char * argv[]) {
                 
                 for (int i = 0; i < cs.second.size(); ++i) {
                     int cst = cs.second[i];
-                    cout << "Try " << cst << endl;
-                    for (int j = max(cst - x, 0); j <= cst; ++j) {
+                    int csts = max(cst - x, 0);
+                    cout << "Try " << csts << endl;
+//                    for (int j = max(cst - x, 0); j <= cst; ++j) {
+                    {
                         // Check different length inside checker
                         // Calculate mask to skip
-                        string can = s.substr(j, L + D);
+                        string can = s.substr(csts, L + 2 * D);
                         TLL mask;
                         for (const auto& t : trigrams) {
                             size_t tp = can.find(t);
@@ -426,7 +453,7 @@ int main(int argc, const char * argv[]) {
                                 }
                             }
                         }
-                        cout << j << " ";
+                        cout << csts << " ";
                         int zeros = 0;
                         for (int ti = can.length() - 1 ; ti >= 0; --ti) {
                             if (mask[ti] == 0) {
@@ -435,15 +462,13 @@ int main(int argc, const char * argv[]) {
                                 break;
                             }
                         }
-                        int len = can.length() - (zeros - min(zeros, D));
+//                        int len = can.length() - (zeros - min(zeros, D));
+                        int len = can.length();
                         for (int ti = 0; ti < len; ++ti) {
                             cout << mask[ti];
-                            if (mask[ti] == 0) {
-                                ++zeros;
-                            }
                         }
                         cout << endl;
-                        generate.combine(getTLL(can), pii(j, len), 0, len, 0, mask);
+                        generate.combine(getTLL(can), pii(csts, len), 0, len, 0, mask);
                     }
                 }
                 // Due to optimization let's not X, I, D in common 3grams
@@ -458,8 +483,8 @@ int main(int argc, const char * argv[]) {
                     for (auto start : res) {
                         vector<char> oo;
                         traceLD(s.substr(start.first, start.second), e, oo);
-//                        out << start.first + 1 << " " << s.substr(start.first, start.second) << " " << compact(oo) << endl;
-                        out << start.first + 1 << " " << compact(oo) << endl;
+                        out << start.first + 1 << " " << s.substr(start.first, start.second) << " " << compact(oo) << endl;
+//                        out << start.first + 1 << " " << compact(oo) << endl;
 
                     }
                     found = true;
