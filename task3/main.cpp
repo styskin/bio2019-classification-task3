@@ -379,7 +379,7 @@ int main(int argc, const char * argv[]) {
         bool found = false;
         set<int> checked;
         // Should be L
-//        L = L - 4;
+//        L = L - 2;
         for (int p = L; p >= 2; --p) {
             cout << "Size " << p << endl;
             msvi pos;
@@ -403,6 +403,16 @@ int main(int argc, const char * argv[]) {
                     }
                 }
             }
+            
+            p = 0;
+            candidates.clear();
+            candidates["X"].push_back(28 + 10);
+            candidates["X"].push_back(67 + 10);
+            candidates["X"].push_back(137 + 10);
+            candidates["X"].push_back(216 + 10);
+            candidates["X"].push_back(1454 + 10);
+
+            
             for (const auto& cs : candidates) {
                 if (cs.second.size() < N) {
                     continue;
@@ -414,7 +424,7 @@ int main(int argc, const char * argv[]) {
                 unordered_map<string, set<int> > ctrigrams;
                 for (int i = 0; i < cs.second.size(); ++i) {
                     int cst = cs.second[i];
-                    string ss = s.substr(max(cst - x, 0), L + 2 * D);
+                    string ss = s.substr(max(cst - x, 0), 2* L + 2 * D);
                     cout << ss << endl;
 
                     for (int j = 0; j < ss.length() - TRIG; ++j) {
@@ -424,7 +434,7 @@ int main(int argc, const char * argv[]) {
                 }
                 vector<string> trigrams;
                 for (const auto& y : ctrigrams) {
-                    if (y.second.size() >= N / 2) {
+                    if (y.second.size() > N / 2) {
                         trigrams.push_back(y.first);
                     }
                 }
@@ -439,21 +449,32 @@ int main(int argc, const char * argv[]) {
                     int cst = cs.second[i];
                     int csts = max(cst - x, 0);
                     cout << "Try " << csts << endl;
-//                    for (int j = max(cst - x, 0); j <= cst; ++j) {
+//                    for (int j = csts; j <= cst; ++j) {
                     {
+                        int j = csts;
                         // Check different length inside checker
                         // Calculate mask to skip
-                        string can = s.substr(csts, L + 2 * D);
+//                        string can = s.substr(j, L + D);
+                        string can = s.substr(j, L + 2 * D);
                         TLL mask;
+                        vi maskk(can.length());
                         for (const auto& t : trigrams) {
                             size_t tp = can.find(t);
                             if (tp != string::npos) {
                                 for (int ti = 0; ti < TRIG; ++ti) {
-                                    mask[tp + ti] = 1;
+                                    ++maskk[tp + ti];
                                 }
                             }
                         }
-                        cout << csts << " ";
+                        for (int tp = 0; tp < can.length(); ++tp) {
+                            if (maskk[tp] > 0) {
+                                mask[tp] = 1;
+                            }
+                        }
+//                        for (int ii = can.length() - TRIG - 1; ii < can.length(); ++ii) {
+//                            mask[ii] = 0;
+//                        }
+                        cout << j << " ";
                         int zeros = 0;
                         for (int ti = can.length() - 1 ; ti >= 0; --ti) {
                             if (mask[ti] == 0) {
@@ -468,7 +489,7 @@ int main(int argc, const char * argv[]) {
                             cout << mask[ti];
                         }
                         cout << endl;
-                        generate.combine(getTLL(can), pii(csts, len), 0, len, 0, mask);
+                        generate.combine(getTLL(can), pii(j, len), 0, len, 0, mask);
                     }
                 }
                 // Due to optimization let's not X, I, D in common 3grams
